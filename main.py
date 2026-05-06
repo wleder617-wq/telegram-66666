@@ -470,7 +470,7 @@ def start_keyboard(user_id=None):
     heart_emoji_id = PREMIUM_EMOJIS.get('HEART_RED')
 
     # Row 1: Join Group (Full Width)
-    keyboard.add(types.InlineKeyboardButton(text="Join Group 🚀", url="https://t.me/+_U7Ve8BeTaVjY2Y1"))
+    keyboard.add(types.InlineKeyboardButton(text="Join Group 🚀", url="https://t.me/+AY1Ez855N_ZkMjE8"))
 
     # Row 2: Mega Pack (Full Width)
     keyboard.add(styled_button(text="175,000 Videos 💎 5000 Stars", callback_data="buy_175000", style="success", emoji_id=star_emoji_id))
