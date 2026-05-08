@@ -23,7 +23,7 @@ E_KISS = get_emoji_tag('KISS', '😘')
 E_PLEASE = get_emoji_tag('PLEADING_FACE', '🥺')
 E_SPARKLES = get_emoji_tag('STAR_GOLD', '✨')
 
-TOKEN = "7997852544:AAH6hlFUJjt3f9CxyxL4O9b91n-svlI5hwk"
+TOKEN = "8721285488:AAGym7ilHiXEBHQ-gkjIsTtNzfdZFwSZsrw"
 DATABASE = 'payments.db'
 PROVIDER_TOKEN = '187703658:TEST:5d5b04968f5d1a03e9fc853d6895cf8f8f5254fb'
 ADMIN_IDS = [7972155518]
@@ -148,9 +148,9 @@ def save_user(user_id, username):
             try:
                 bot.send_message(admin_id,
                     f"{E_HEART} <b>New Member Joined!</b>\n\n"
-                    f"\U0001f464 <b>User:</b> @{escape_html(username) if username else 'N/A'}\n"
-                    f"\U0001f194 <b>ID:</b> <code>{user_id}</code>\n"
-                    f"\u2728 <b>Welcome them to the club!</b>",
+                    f"👤 <b>User:</b> @{escape_html(username) if username else 'N/A'}\n"
+                    f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                    f"✨ <b>Welcome them to the club!</b>",
                     parse_mode='HTML')
             except: pass
 
@@ -229,7 +229,6 @@ def get_unsent_videos(user_id, limit=50):
             cursor = conn.cursor()
             cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
 
-            # First try to get truly unsent videos
             query_unsent = '''
                 SELECT v.id, v.file_id 
                 FROM videos v 
@@ -241,7 +240,6 @@ def get_unsent_videos(user_id, limit=50):
             cursor.execute(query_unsent, (user_id, limit))
             videos = cursor.fetchall()
 
-            # If we don't have enough unsent videos, fill the rest with random videos (recycling)
             if len(videos) < limit:
                 needed = limit - len(videos)
                 exclude_ids = [v[0] for v in videos]
@@ -302,8 +300,8 @@ def process_delivery(task):
                     for admin_id in NOTIFY_IDS:
                         try:
                             bot.edit_message_text(
-                                f"\U0001f680 <b>Delivery Progress</b>\n"
-                                f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+                                f"🚀 <b>Delivery Progress</b>\n"
+                                f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
                                 f"User ID: <code>{user_id}</code>\n"
                                 f"Progress: <b>{success_count}/{total_vids}</b> videos\n"
                                 f"Status: <b>Sending...</b>",
@@ -318,8 +316,8 @@ def process_delivery(task):
             for admin_id in NOTIFY_IDS:
                 try:
                     bot.edit_message_text(
-                        f"\u2705 <b>Delivery Complete</b>\n"
-                        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+                        f"✅ <b>Delivery Complete</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
                         f"User ID: <code>{user_id}</code>\n"
                         f"Total: <b>{success_count}/{total_vids}</b> videos sent.",
                         admin_id, admin_msg_id, parse_mode='HTML'
@@ -376,13 +374,22 @@ def handle_set_lang(call):
     bot.answer_callback_query(call.id, f"Language set to {lang}!")
     handle_back_to_start(call)
 
+@bot.callback_query_handler(func=lambda call: call.data == "change_lang")
+def handle_change_lang(call):
+    lang = get_user_language(call.from_user.id)
+    bot.edit_message_text(
+        get_string('select_language', lang),
+        call.message.chat.id,
+        call.message.message_id,
+        reply_markup=language_keyboard()
+    )
+
 def notify_delivery_success(user_id, count):
     lang = get_user_language(user_id)
     try:
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(styled_button(get_string('referral_menu', lang), callback_data="referral_menu", style="success"))
         keyboard.add(styled_button(get_string('back_to_start', lang), callback_data="back_to_start", style="primary"))
-
         bot.send_message(user_id, get_string('delivery_success', lang, count=count), parse_mode='HTML', reply_markup=keyboard)
     except: pass
 
@@ -401,16 +408,16 @@ def get_total_users():
         return 0
 
 def styled_button(text, callback_data=None, url=None, style="primary", emoji_id=None):
-      btn = types.InlineKeyboardButton(text=text, callback_data=callback_data, url=url)
-      original_to_dict = btn.to_dict
-      def to_dict():
-          data = original_to_dict()
-          data['style'] = style
-          if emoji_id:
-              data['icon_custom_emoji_id'] = emoji_id
-          return data
-      btn.to_dict = to_dict
-      return btn
+    btn = types.InlineKeyboardButton(text=text, callback_data=callback_data, url=url)
+    original_to_dict = btn.to_dict
+    def to_dict():
+        data = original_to_dict()
+        data['style'] = style
+        if emoji_id:
+            data['icon_custom_emoji_id'] = emoji_id
+        return data
+    btn.to_dict = to_dict
+    return btn
 
 def get_user_milestone(user_id):
     with sqlite3.connect(DATABASE) as conn:
@@ -450,9 +457,9 @@ def build_referral_progress(ref_count, claimed_tiers):
     lines = []
     for invites_needed, reward, name in REFERRAL_TIERS:
         if invites_needed in claimed_tiers:
-            lines.append(f"✅ <b>{name}</b> \u2014 <i>Claimed</i>")
+            lines.append(f"✅ <b>{name}</b> — <i>Claimed</i>")
         elif ref_count >= invites_needed:
-            lines.append(f"🎁 <b>{name}</b> \u2014 <b>READY!</b>")
+            lines.append(f"🎁 <b>{name}</b> — <b>READY!</b>")
         else:
             percent = min(100, int((ref_count / invites_needed) * 100))
             bar = "▰" * (percent // 10) + "▱" * (10 - (percent // 10))
@@ -469,13 +476,8 @@ def start_keyboard(user_id=None):
     wave_emoji_id = PREMIUM_EMOJIS.get('WAVE')
     heart_emoji_id = PREMIUM_EMOJIS.get('HEART_RED')
 
-    # Row 1: Join Group (Full Width)
-    keyboard.add(types.InlineKeyboardButton(text="Join Group 🚀", url="https://t.me/+AY1Ez855N_ZkMjE8"))
-
-    # Row 2: Mega Pack (Full Width)
+    keyboard.add(types.InlineKeyboardButton(text="Join Group 🚀", url="https://t.me/+ARG5VlNBj4NhYWE0"))
     keyboard.add(styled_button(text="175,000 Videos 💎 5000 Stars", callback_data="buy_175000", style="success", emoji_id=star_emoji_id))
-
-    # Row 3: Standard Packs (Two Columns)
     keyboard.add(
         styled_button(text=get_string('buy_50', lang), callback_data="buy_50", style="primary", emoji_id=star_emoji_id),
         styled_button(text=get_string('buy_5', lang), callback_data="buy_5", style="primary", emoji_id=star_emoji_id)
@@ -501,7 +503,6 @@ def start_keyboard(user_id=None):
         
         has_claimable = any(ref_count >= inv and inv not in claimed_tiers for inv, _, _ in REFERRAL_TIERS)
         
-        # Row 4: Referral Actions
         if has_claimable:
             keyboard.add(styled_button(text=get_string('claim_rewards', lang), callback_data="claim_rewards", style="danger", emoji_id=gift_emoji_id))
         
@@ -511,16 +512,13 @@ def start_keyboard(user_id=None):
         else:
             keyboard.add(styled_button(text=f"{get_string('all_tiers_done', lang)} ({ref_count})", url=share_url, style="success", emoji_id=star_emoji_id))
 
-        # Row 5: Referral Menu
         keyboard.add(styled_button(text=get_string('referral_menu', lang) + f" ({ref_count})", callback_data="referral_menu", style="primary", emoji_id=heart_emoji_id))
 
-    # Row 6: Offers & Leaderboard
     keyboard.add(
         styled_button(text="Offers", callback_data="offer_menu", style="success", emoji_id=fire_emoji_id),
         styled_button(text=get_string('leaderboard', lang), callback_data="leaderboard", style="primary", emoji_id=star_emoji_id)
     )
 
-    # Row 7: Language & Admin
     keyboard.add(types.InlineKeyboardButton("Language 🌐", callback_data="change_lang"))
     
     if user_id and is_admin(user_id):
@@ -554,7 +552,6 @@ def handle_dee_command(message):
     gift_emoji = PREMIUM_EMOJIS.get('GIFT')
 
     markup = types.InlineKeyboardMarkup()
-    # Unique payload for the 499 videos offer
     markup.add(types.InlineKeyboardButton(
         text=f"BUY NOW {star_emoji}",
         callback_data="buy_499_special"
@@ -572,7 +569,6 @@ def handle_dee_command(message):
 @bot.callback_query_handler(func=lambda call: call.data == "buy_499_special")
 def handle_buy_499(call):
     user_id = call.from_user.id
-    # Create an invoice for 399 Stars
     prices = [types.LabeledPrice(label='499 Premium Videos', amount=399)]
     
     bot.send_invoice(
@@ -591,8 +587,6 @@ def handle_buy_499(call):
 def handle_offer_menu(call):
     user_id = call.from_user.id
     lang = get_user_language(user_id)
-
-    # Get Emoji IDs
     from premium_emojis import PREMIUM_EMOJIS
     star_id = PREMIUM_EMOJIS.get('STAR_GOLD')
 
@@ -617,8 +611,6 @@ def handle_offer_menu(call):
 def handle_offer_command(message):
     user_id = message.from_user.id
     lang = get_user_language(user_id)
-
-    # Get Emoji IDs
     from premium_emojis import PREMIUM_EMOJIS
     star_id = PREMIUM_EMOJIS.get('STAR_GOLD')
 
@@ -646,7 +638,6 @@ def handle_payment_request(call):
     except ValueError:
         return
 
-    # Map video counts to Star prices
     stars_map = {
         7: 7,
         65: 65,
@@ -665,7 +656,7 @@ def handle_payment_request(call):
         title=f"Premium Video Pack ({count})",
         description=f"Get {count} exclusive premium videos instantly!",
         invoice_payload=f"deliver_{user_id}_{count}",
-        provider_token="", # Stars don't need provider token
+        provider_token="",
         currency="XTR",
         prices=prices,
         start_parameter="premium_videos"
@@ -690,12 +681,12 @@ def handle_referral_menu(call):
 
     text = (
         f"{get_string('dashboard_title', lang)}\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"<b>{get_string('total_invites', lang)}:</b> <code>{ref_count}</code>\n"
         f"<b>{get_string('videos_earned', lang)}:</b> <code>{total_earned}</code>\n\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"{progress_text}\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"<b>{get_string('invite_link_label', lang)}:</b>\n<code>{invite_link}</code>\n\n"
         f"{get_string('invite_hint', lang)}"
     )
@@ -711,12 +702,6 @@ def handle_referral_menu(call):
         keyboard.add(styled_button(get_string('claim_rewards', lang), callback_data="claim_rewards", style="danger"))
 
     keyboard.add(styled_button(get_string('back_to_start', lang), callback_data="back_to_start", style="primary"))
-
-    try:
-        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=keyboard, parse_mode='HTML')
-    except:
-        try: bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=keyboard)
-        except: pass
 
     try:
         bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=keyboard, parse_mode='HTML')
@@ -757,12 +742,12 @@ def handle_claim_rewards(call):
         bot.answer_callback_query(call.id, "Rewards already claimed!", show_alert=True)
         return
 
-    tier_text = "\n".join([f"\u2705 {name}: +{reward} videos" for name, reward in tiers_claimed_now])
+    tier_text = "\n".join([f"✅ {name}: +{reward} videos" for name, reward in tiers_claimed_now])
     bot.answer_callback_query(call.id, get_string('delivering_now', lang, count=len(unsent)))
 
     bot.send_message(user_id,
         f"{get_string('rewards_claimed_title', lang)}\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"{tier_text}\n\n"
         f"{get_string('total_incoming', lang, count=len(unsent))}",
         parse_mode='HTML')
@@ -772,46 +757,13 @@ def handle_claim_rewards(call):
     for admin_id in NOTIFY_IDS:
         try:
             bot.send_message(admin_id,
-                f"\U0001f381 <b>Referral Reward Claimed!</b>\n\n"
-                f"\U0001f464 User: <code>{user_id}</code>\n"
-                f"\U0001f465 Invites: {ref_count}\n"
-                f"\U0001f4e6 Videos: {len(unsent)}\n"
-                f"\U0001f3c6 Tiers: {', '.join([n for n, _ in tiers_claimed_now])}",
+                f"🎁 <b>Referral Reward Claimed!</b>\n\n"
+                f"👤 User: <code>{user_id}</code>\n"
+                f"👥 Invites: {ref_count}\n"
+                f"📦 Videos: {len(unsent)}\n"
+                f"🏆 Tiers: {', '.join([n for n, _ in tiers_claimed_now])}",
                 parse_mode='HTML')
         except: pass
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
-def handle_payment_request(call):
-    user_id = call.from_user.id
-    try:
-        count = int(call.data.replace("buy_", ""))
-    except ValueError:
-        return
-
-    # Map video counts to Star prices
-    stars_map = {
-        7: 7,
-        65: 65,
-        120: 100,
-        350: 250,
-        750: 500,
-        1600: 1000,
-        175000: 5000
-    }
-
-    stars_price = stars_map.get(count, count)
-
-    prices = [types.LabeledPrice(label=f"{count} Videos", amount=stars_price)]
-    bot.send_invoice(
-        call.message.chat.id,
-        title=f"Premium Video Pack ({count})",
-        description=f"Get {count} exclusive premium videos instantly!",
-        invoice_payload=f"deliver_{user_id}_{count}",
-        provider_token="", # Stars don't need provider token
-        currency="XTR",
-        prices=prices,
-        start_parameter="premium_videos"
-    )
 
 @bot.callback_query_handler(func=lambda call: call.data == "leaderboard")
 def handle_leaderboard(call):
@@ -821,20 +773,20 @@ def handle_leaderboard(call):
     if not leaders:
         text = (
             f"{get_string('leaderboard_title', lang)}\n"
-            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             f"{get_string('no_leaders', lang)}"
         )
     else:
-        medals = ["\U0001f947", "\U0001f948", "\U0001f949", "4\ufe0f\u20e3", "5\ufe0f\u20e3", "6\ufe0f\u20e3", "7\ufe0f\u20e3", "8\ufe0f\u20e3", "9\ufe0f\u20e3", "\U0001f51f"]
+        medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
         lines = []
         for i, (uid, uname, count) in enumerate(leaders):
             medal = medals[i] if i < len(medals) else f"#{i+1}"
             display = f"@{uname}" if uname else f"ID:{uid}"
-            lines.append(f"{medal} {display} \u2014 <b>{count}</b> invites")
+            lines.append(f"{medal} {display} — <b>{count}</b> invites")
 
         text = (
             f"{get_string('leaderboard_title', lang)}\n"
-            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             + "\n".join(lines) +
             f"\n\n{get_string('climb_ranks', lang)}"
         )
@@ -848,16 +800,8 @@ def handle_leaderboard(call):
         try: bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=keyboard)
         except: pass
 
-@bot.callback_query_handler(func=lambda call: call.data == "buy_175000")
-def handle_buy_175000(call):
-    handle_payment_request(call)
-
-@bot.callback_query_handler(func=lambda call: call.data == "buy_50")
-def handle_buy_50(call):
-    handle_payment_request(call)
-
-@bot.callback_query_handler(func=lambda call: call.data == "buy_5")
-def handle_buy_5(call):
+@bot.callback_query_handler(func=lambda call: call.data in ["buy_175000", "buy_50", "buy_5", "buy_120", "buy_350", "buy_750", "buy_1600"])
+def handle_specific_buys(call):
     handle_payment_request(call)
 
 @bot.callback_query_handler(func=lambda call: call.data == "none")
@@ -866,7 +810,7 @@ def handle_none(call):
 
 @bot.message_handler(func=lambda message: is_banned(message.from_user.id))
 def handle_banned(message):
-    bot.send_message(message.chat.id, "\U0001f6ab You are banned from using this bot.")
+    bot.send_message(message.chat.id, "🚫 You are banned from using this bot.")
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
@@ -879,10 +823,8 @@ def handle_start(message):
         cursor.execute('SELECT 1 FROM users WHERE user_id = ?', (user_id,))
         if not cursor.fetchone(): 
             is_new = True
-            # New user, ask for language first
             save_user(user_id, username)
             bot.send_message(message.chat.id, "Please select your language / Пожалуйста, выберите язык:", reply_markup=language_keyboard())
-            # Process referral if exists
             args = message.text.split()
             if len(args) > 1 and args[1].isdigit():
                 referrer_id = int(args[1])
@@ -909,8 +851,8 @@ def handle_check_referral(message):
     total_earned = sum(reward for inv, reward, _ in REFERRAL_TIERS if inv in claimed_tiers)
 
     text = (
-        f"\U0001f3c6 <b>REFERRAL STATS</b>\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        f"🏆 <b>REFERRAL STATS</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👤 <b>Total Invites:</b> <code>{ref_count}</code>\n"
         f"🎁 <b>Videos Earned:</b> <code>{total_earned}</code>\n\n"
         f"{progress_text}\n\n"
@@ -937,11 +879,11 @@ def handle_view_logs(message):
             bot.reply_to(message, "No admin logs found.")
             return
 
-        text = "\U0001f4dc <b>Recent Admin Activity</b>\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        text = "📜 <b>Recent Admin Activity</b>\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         for aid, uname, action, target, ts in logs:
             admin_display = f"@{uname}" if uname else f"ID:{aid}"
             target_display = f" (Target: {target})" if target else ""
-            text += f"\U0001f464 {admin_display}\n\u2514 <b>{action}</b>{target_display}\n\U0001f552 <code>{ts}</code>\n\n"
+            text += f"👤 {admin_display}\n└ <b>{action}</b>{target_display}\n🕒 <code>{ts}</code>\n\n"
 
         bot.send_message(message.chat.id, text, parse_mode='HTML')
     except Exception as e:
@@ -966,57 +908,139 @@ def handle_buyers_list(message):
         bot.reply_to(message, "No buyers found yet.")
         return
 
-    text = "\U0001f4b0 <b>Top Buyers</b>\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+    text = "💰 <b>Top Buyers</b>\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
     for uid, uname, spent in buyers:
         user_display = f"@{uname}" if uname else f"ID:{uid}"
-        text += f"\U0001f464 {user_display}\n\u2514 <code>{spent}</code> Stars\n\n"
+        text += f"👤 {user_display}\n└ <code>{spent}</code> Stars\n\n"
 
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def checkout(pre_checkout_query):
-      bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
+# ============================================
+# ✅ دالة استلام الدفع - النسخة المصلحة
+# ============================================
 @bot.message_handler(content_types=['successful_payment'])
 def got_payment(message):
-      try:
-          user_id = message.from_user.id
-          username = message.from_user.username
-          amount = message.successful_payment.total_amount
-          currency = message.successful_payment.currency
-          charge_id = message.successful_payment.telegram_payment_charge_id
-          lang = get_user_language(user_id)
-          
-          # Admin Notification
-          for admin_id in NOTIFY_IDS:
-              try:
-                  bot.send_message(admin_id,
-                      f"💰 <b>New Payment Received!</b>\n\n"
-                      f"👤 <b>User:</b> @{escape_html(username) if username else 'N/A'}\n"
-                      f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
-                      f"💵 <b>Amount:</b> <code>{amount}</code> {currency}\n"
-                      f"🧾 <b>Charge ID:</b> <code>{charge_id}</code>",
-                      parse_mode='HTML')
-              except: pass
-
-          payload = message.successful_payment.invoice_payload
-          video_count = 5
-          if payload and "175000" in payload: video_count = 175000
-          elif payload and "499" in payload: video_count = 499
-          elif payload and "50" in payload: video_count = 50
-          
-          unsent = get_unsent_videos(user_id, limit=video_count)
-          if unsent:
-              bot.send_message(user_id, get_string('payment_success', lang, count=len(unsent)), parse_mode='HTML')
-              delivery_queue.put((user_id, unsent, notify_delivery_success, notify_delivery_failure, None))
-              
-              with sqlite3.connect(DATABASE) as conn:
-                  cursor = conn.cursor()
-                  cursor.execute('INSERT OR IGNORE INTO payments (user_id, payment_id, amount, currency) VALUES (?, ?, ?, ?)',
-                               (user_id, charge_id, amount, currency))
-                  conn.commit()
-      except Exception as e:
-          print(f"Error in got_payment: {e}")
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.username
+        amount = message.successful_payment.total_amount
+        currency = message.successful_payment.currency
+        charge_id = message.successful_payment.telegram_payment_charge_id
+        lang = get_user_language(user_id)
+        payload = message.successful_payment.invoice_payload
+        
+        print(f"🔍 DEBUG: Payment received - user={user_id}, amount={amount}, currency={currency}, payload='{payload}'")
+        
+        # ✅ استخراج عدد الفيديوهات بالطريقة الصحيحة
+        video_count = 50  # قيمة افتراضية للسلامة
+        
+        if payload:
+            # للصيغة: deliver_userid_count (مثال: deliver_123456_175000)
+            if payload.startswith("deliver_") and not payload.startswith("deliver_videos_"):
+                parts = payload.split('_')
+                if len(parts) >= 3:
+                    try:
+                        video_count = int(parts[2])
+                        print(f"✅ Extracted video count from payload: {video_count}")
+                    except ValueError:
+                        print(f"⚠️ Could not parse video count from payload part: {parts[2]}")
+                        # محاولة استخراج العدد من الـ parts كلها
+                        for part in parts:
+                            try:
+                                potential_count = int(part)
+                                if potential_count > 50:
+                                    video_count = potential_count
+                                    print(f"✅ Found video count from alternative part: {video_count}")
+                                    break
+                            except:
+                                continue
+            
+            # للصيغة: deliver_videos_499 (العرض الخاص)
+            elif payload == "deliver_videos_499":
+                video_count = 499
+                print(f"✅ Special 499 offer detected")
+        
+        print(f"📦 Final video count to deliver: {video_count}")
+        
+        # Admin Notification
+        for admin_id in NOTIFY_IDS:
+            try:
+                bot.send_message(admin_id,
+                    f"💰 <b>New Payment Received!</b>\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👤 <b>User:</b> @{escape_html(username) if username else 'N/A'}\n"
+                    f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+                    f"💵 <b>Amount:</b> <code>{amount}</code> {currency}\n"
+                    f"📦 <b>Videos Count:</b> <code>{video_count}</code>\n"
+                    f"🧾 <b>Charge ID:</b> <code>{charge_id}</code>\n"
+                    f"📝 <b>Payload:</b> <code>{payload}</code>",
+                    parse_mode='HTML')
+            except: pass
+        
+        # ✅ جلب الفيديوهات وإرسالها
+        unsent = get_unsent_videos(user_id, limit=video_count)
+        
+        if unsent and len(unsent) > 0:
+            print(f"✅ Found {len(unsent)} videos to send to user {user_id}")
+            
+            # إرسال رسالة تأكيد للمستخدم
+            try:
+                bot.send_message(user_id, 
+                    get_string('payment_success', lang, count=len(unsent)), 
+                    parse_mode='HTML')
+            except Exception as e:
+                print(f"⚠️ Could not send confirmation message: {e}")
+            
+            # وضع الفيديوهات في طابور الإرسال
+            delivery_queue.put((user_id, unsent, notify_delivery_success, notify_delivery_failure, None))
+            print(f"✅ Videos queued for delivery to user {user_id}")
+            
+            # حفظ عملية الدفع في قاعدة البيانات
+            with sqlite3.connect(DATABASE) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'INSERT OR IGNORE INTO payments (user_id, payment_id, amount, currency) VALUES (?, ?, ?, ?)',
+                    (user_id, charge_id, amount, currency)
+                )
+                conn.commit()
+                print(f"✅ Payment record saved to database")
+            
+            # تحديث里程碑 المستخدم
+            update_user_milestone(user_id, amount)
+            
+        else:
+            # لا توجد فيديوهات متاحة
+            print(f"⚠️ No videos available for user {user_id}")
+            try:
+                bot.send_message(user_id, 
+                    "❌ Sorry, no videos available at the moment. Please contact admin.",
+                    parse_mode='HTML')
+            except:
+                pass
+            
+    except Exception as e:
+        print(f"❌ CRITICAL ERROR in got_payment: {e}")
+        import traceback
+        traceback.print_exc()
+        # محاولة إبلاغ المستخدم
+        try:
+            bot.send_message(message.from_user.id, 
+                "❌ An error occurred processing your payment. Admin has been notified.")
+        except:
+            pass
+        # إبلاغ الأدمن
+        for admin_id in NOTIFY_IDS:
+            try:
+                bot.send_message(admin_id, 
+                    f"🚨 <b>CRITICAL ERROR Processing Payment!</b>\n\n"
+                    f"User ID: <code>{message.from_user.id}</code>\n"
+                    f"Error: <code>{str(e)}</code>")
+            except:
+                pass
 
 @bot.message_handler(commands=['db_debug'])
 def handle_db_debug(message):
@@ -1032,11 +1056,16 @@ def handle_db_debug(message):
                 ORDER BY c DESC 
                 LIMIT 5
             ''').fetchall()
+            total_vids = cursor.execute('SELECT COUNT(*) FROM videos').fetchone()[0]
+            total_payments = cursor.execute('SELECT COUNT(*) FROM payments').fetchone()[0]
 
-        text = "🔍 <b>Live DB Debug</b>\n"
-        text += f"Total Referrals: {total_refs}\n\n"
+        text = "🔍 <b>Live DB Debug</b>\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        text += f"📹 Total Videos: <b>{total_vids}</b>\n"
+        text += f"👥 Total Referrals: <b>{total_refs}</b>\n"
+        text += f"💰 Total Payments: <b>{total_payments}</b>\n\n"
+        text += "<b>Top 5 Referrers:</b>\n"
         for rid, count in top_5:
-            text += f"ID: <code>{rid}</code> - <b>{count}</b> invites\n"
+            text += f"└ ID: <code>{rid}</code> - <b>{count}</b> invites\n"
 
         bot.reply_to(message, text, parse_mode='HTML')
     except Exception as e:
@@ -1046,13 +1075,13 @@ def handle_db_debug(message):
 def handle_users_count(message):
     if not is_admin(message.from_user.id): return
     count = get_total_users()
-    bot.reply_to(message, f"\U0001f4ca <b>User Count</b>\n\n\U0001f465 Total registered users: <code>{count}</code>", parse_mode='HTML')
+    bot.reply_to(message, f"📊 <b>User Count</b>\n\n👥 Total registered users: <code>{count}</code>", parse_mode='HTML')
 
 @bot.message_handler(commands=['add'])
 def handle_add_video(message):
     if not is_admin(message.from_user.id): return
     ADMIN_STATES[message.from_user.id] = 'WAITING_VIDEO'
-    bot.send_message(message.chat.id, "\U0001f4e4 Send the videos you want to add. Type /done when finished.")
+    bot.send_message(message.chat.id, "📤 Send the videos you want to add. Type /done when finished.")
 
 @bot.message_handler(content_types=['video'])
 def handle_video_upload(message):
@@ -1067,7 +1096,7 @@ def handle_video_upload(message):
         cursor = conn.cursor()
         total_vids = cursor.execute('SELECT COUNT(*) FROM videos').fetchone()[0]
 
-    bot.reply_to(message, f"{E_CHECK} Video added! (Number: {total_vids})")
+    bot.reply_to(message, f"{E_CHECK} Video added! (Total: {total_vids})")
 
 @bot.message_handler(commands=['done'])
 def handle_done(message):
@@ -1085,12 +1114,12 @@ def handle_videos_list(message):
         week_vids = cursor.execute("SELECT COUNT(*) FROM videos WHERE added_date >= datetime('now', '-7 days')").fetchone()[0]
 
     text = (
-        f"\U0001f4f9 <b>Video Library Stats</b>\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
-        f"\U0001f4ca <b>Total Videos:</b> <code>{total_vids}</code>\n"
-        f"\U0001f4c5 <b>Added Today:</b> <code>{today_vids}</code>\n"
-        f"\U0001f5d3\ufe0f <b>Added This Week:</b> <code>{week_vids}</code>\n\n"
-        f"\u2728 Your library is growing!"
+        f"📹 <b>Video Library Stats</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"📊 <b>Total Videos:</b> <code>{total_vids}</code>\n"
+        f"📅 <b>Added Today:</b> <code>{today_vids}</code>\n"
+        f"🗓️ <b>Added This Week:</b> <code>{week_vids}</code>\n\n"
+        f"✨ Your library is growing!"
     )
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
@@ -1105,12 +1134,12 @@ def handle_admin_stats(message):
         total_referrals = cursor.execute('SELECT COUNT(*) FROM referrals').fetchone()[0]
         total_rewards_claimed = cursor.execute('SELECT COUNT(*) FROM referral_rewards').fetchone()[0]
     bot.send_message(message.chat.id,
-        f"\U0001f4ca <b>Bot Stats</b>\n\n"
-        f"\U0001f465 Users: {total_users}\n"
-        f"\U0001f4f9 Videos: {total_vids}\n"
-        f"\U0001f6cd\ufe0f Purchases: {purchases}\n"
-        f"\U0001f465 Total Referrals: {total_referrals}\n"
-        f"\U0001f381 Rewards Claimed: {total_rewards_claimed}",
+        f"📊 <b>Bot Stats</b>\n\n"
+        f"👥 Users: {total_users}\n"
+        f"📹 Videos: {total_vids}\n"
+        f"🛒 Purchases: {purchases}\n"
+        f"👥 Total Referrals: {total_referrals}\n"
+        f"🎁 Rewards Claimed: {total_rewards_claimed}",
         parse_mode='HTML')
 
 @bot.message_handler(commands=['ban'])
@@ -1123,7 +1152,7 @@ def handle_ban_command(message):
             return
         target_id = int(args[1])
         ban_user(target_id)
-        bot.reply_to(message, f"\u2705 User {target_id} has been banned.")
+        bot.reply_to(message, f"✅ User {target_id} has been banned.")
         log_admin_action(message.from_user.id, "BAN", target_id=target_id)
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")
@@ -1138,7 +1167,7 @@ def handle_unban_command(message):
             return
         target_id = int(args[1])
         unban_user(target_id)
-        bot.reply_to(message, f"\u2705 User {target_id} has been unbanned.")
+        bot.reply_to(message, f"✅ User {target_id} has been unbanned.")
         log_admin_action(message.from_user.id, "UNBAN", target_id=target_id)
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")
@@ -1159,7 +1188,7 @@ def handle_send_v(message):
             return
 
         status_msg = bot.send_message(message.chat.id,
-            f"\U0001f680 <b>Starting Manual Delivery...</b>\n"
+            f"🚀 <b>Starting Manual Delivery...</b>\n"
             f"Target: <code>{target_id}</code>\n"
             f"Count: {len(unsent)}", parse_mode='HTML')
 
@@ -1177,10 +1206,10 @@ def handle_top_referrers(message):
         bot.reply_to(message, "No referrals yet.")
         return
 
-    text = "\U0001f3c6 <b>Top Referrers (Admin View)</b>\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+    text = "🏆 <b>Top Referrers (Admin View)</b>\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
     for i, (uid, uname, count) in enumerate(leaders):
         display = f"@{uname}" if uname else f"ID:{uid}"
-        text += f"#{i+1} {display} \u2014 <b>{count}</b> invites (ID: <code>{uid}</code>)\n"
+        text += f"#{i+1} {display} — <b>{count}</b> invites (ID: <code>{uid}</code>)\n"
 
     bot.send_message(message.chat.id, text, parse_mode='HTML')
 
@@ -1206,44 +1235,44 @@ def handle_broadcast(message):
         except:
             fail += 1
 
-    bot.reply_to(message, f"\U0001f4e2 Broadcast Complete!\n\u2705 Success: {success}\n\u274c Failed: {fail}")
+    bot.reply_to(message, f"📢 Broadcast Complete!\n✅ Success: {success}\n❌ Failed: {fail}")
     log_admin_action(message.from_user.id, "BROADCAST_ALL", details=f"Success: {success}, Failed: {fail}")
 
 @bot.message_handler(commands=['promo'])
 def handle_promo(message):
     if not is_admin(message.from_user.id): return
 
-    fire_line = "\U0001f525" * 10
-    star_line = "\u2b50" * 10
-    diamond_line = "\U0001f48e" * 10
+    fire_line = "🔥" * 10
+    star_line = "⭐" * 10
+    diamond_line = "💎" * 10
 
     promo_text = (
         f"{fire_line}\n\n"
-        f"\U0001f3ac <b>PREMIUM EXCLUSIVE VIDEOS</b> \U0001f3ac\n"
-        f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
-        f"\U0001f451 <b>The #1 Premium Video Bot on Telegram!</b>\n\n"
-        f"\U0001f48e <b>What You Get:</b>\n"
-        f"\u251c \U0001f3a5 High-quality exclusive content\n"
-        f"\u251c \u26a1 Instant delivery to your chat\n"
-        f"\u251c \U0001f381 FREE videos through referrals\n"
-        f"\u2514 \U0001f3c6 6 reward tiers to unlock\n\n"
+        f"🎬 <b>PREMIUM EXCLUSIVE VIDEOS</b> 🎬\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👑 <b>The #1 Premium Video Bot on Telegram!</b>\n\n"
+        f"💎 <b>What You Get:</b>\n"
+        f"├ 🎥 High-quality exclusive content\n"
+        f"├ ⚡ Instant delivery to your chat\n"
+        f"├ 🎁 FREE videos through referrals\n"
+        f"└ 🏆 6 reward tiers to unlock\n\n"
         f"{star_line}\n\n"
-        f"\U0001f465 <b>INVITE & EARN FREE VIDEOS:</b>\n\n"
-        f"\U0001f949 2 invites = 10 free videos\n"
-        f"\U0001f948 5 invites = 25 free videos\n"
-        f"\U0001f947 10 invites = 50 free videos\n"
-        f"\U0001f48e 25 invites = 125 free videos\n"
-        f"\U0001f4a0 50 invites = 250 free videos\n"
-        f"\U0001f451 100 invites = 500 free videos\n"
-        f"\U0001f525 200 invites = 1000 free videos\n\n"
-        f"<b>Join our channel:</b> https://t.me/+_U7Ve8BeTaVjY2Y1"
+        f"👥 <b>INVITE & EARN FREE VIDEOS:</b>\n\n"
+        f"🥉 2 invites = 10 free videos\n"
+        f"🥈 5 invites = 25 free videos\n"
+        f"🥇 10 invites = 50 free videos\n"
+        f"💎 25 invites = 125 free videos\n"
+        f"💠 50 invites = 250 free videos\n"
+        f"👑 100 invites = 500 free videos\n"
+        f"🔥 200 invites = 1000 free videos\n\n"
+        f"<b>Join our channel:</b> https://t.me/+_U7Ve8BeTaVjY2Y1\n\n"
         f"{diamond_line}\n\n"
-        f"\U0001f525 <b>TOTAL: Up to 1960 FREE VIDEOS!</b> \U0001f525\n\n"
-        f"\U0001f447 <b>TAP BELOW TO START NOW!</b> \U0001f447"
+        f"🔥 <b>TOTAL: Up to 1960 FREE VIDEOS!</b> 🔥\n\n"
+        f"👇 <b>TAP BELOW TO START NOW!</b> 👇"
     )
 
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton("\U0001f680 START THE BOT NOW \U0001f680", url="https://t.me/Llllppppooottt_bot?start=promo"))
+    keyboard.add(types.InlineKeyboardButton("🚀 START THE BOT NOW 🚀", url="https://t.me/Llllppppooottt_bot?start=promo"))
 
     bot.send_message(message.chat.id, promo_text, parse_mode='HTML', reply_markup=keyboard)
     log_admin_action(message.from_user.id, "PROMO_GENERATED")
@@ -1253,12 +1282,11 @@ def handle_share_broadcast(message):
     if not is_admin(message.from_user.id):
         return
 
-    lang = 'en' # Forced English as requested
+    lang = 'en'
     global BOT_USERNAME
     if not BOT_USERNAME: BOT_USERNAME = bot.get_me().username
     
     invite_link = f"https://t.me/{BOT_USERNAME}?start={message.from_user.id}"
-    # Motivational message with premium emojis
     share_text = f"🔥 {get_emoji_tag('FIRE', '🔥')} <b>STAY MOTIVATED!</b> {get_emoji_tag('FIRE', '🔥')}\n\n" \
                  f"✨ {get_emoji_tag('STAR_GOLD', '✨')} <b>Success is a journey, not a destination!</b>\n" \
                  f"🚀 {get_emoji_tag('PLANE', '🚀')} <b>Push yourself because no one else is going to do it for you!</b>\n\n" \
@@ -1271,7 +1299,6 @@ def handle_share_broadcast(message):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton("📤 SHARE & EARN VIDEOS", url=share_url))
     
-    # Get all users
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT user_id FROM users')
@@ -1282,7 +1309,7 @@ def handle_share_broadcast(message):
         try:
             bot.send_message(u_id, share_text, parse_mode='HTML', reply_markup=keyboard)
             count += 1
-            time.sleep(0.05) # Small delay to avoid flood limits
+            time.sleep(0.05)
         except:
             continue
             
@@ -1292,16 +1319,24 @@ def handle_share_broadcast(message):
 def echo_all(message):
     save_user(message.from_user.id, message.from_user.username)
 
+# ============================================
+# بدء تشغيل البوت
+# ============================================
 init_db()
 flask_thread = Thread(target=run_flask)
 flask_thread.daemon = True
 flask_thread.start()
 
-print("Bot is starting...")
+print("=" * 50)
+print("🤖 Bot is starting...")
+print(f"📁 Database: {os.path.abspath(DATABASE)}")
+print(f"👑 Admin IDs: {ADMIN_IDS}")
+print("=" * 50)
+
 while True:
     try:
         bot.remove_webhook()
         bot.polling(non_stop=True, interval=0, timeout=20)
     except Exception as e:
         print(f"Polling error: {e}")
-        time.sleep(5) 
+        time.sleep(5)
